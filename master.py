@@ -1,7 +1,7 @@
 from cookbook import Cookbook
 import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import scrolledtext
 
 class AutoScrollbar(tk.Scrollbar):
     # TAKEN from effbot.org/zone/tkinter-autoscrollbar.htm
@@ -161,18 +161,26 @@ class GUI:
         main_panel.grid(row=0, column=1, sticky='nsew')
         main_panel.rowconfigure(0, weight=0, minsize=30)
         main_panel.rowconfigure(1, weight=1)
+        main_panel.rowconfigure(2, weight=0)
         main_panel.columnconfigure(0, weight=1)
 
         title = tk.Label(master=main_panel,
             font='Helvetica 18 bold')
-        title.grid(row=0, column=0, sticky='nsew')
+        title.grid(row=0, column=0, columnspan=2, sticky='nsew')
 
-        recipe_body = tk.Text(master=main_panel, state='disabled', font='TkDefaultFont')
+        recipe_body = tk.Text(master=main_panel, state='disabled',
+            font='TkDefaultFont', height=27, width=20, wrap=tk.WORD)
         # recipe_body.config(background='lightblue')
-        recipe_body.grid(row=1, column=0, sticky='new')
+        recipe_body.grid(row=1, column=0, sticky='nsew')
+
+        recipe_body_scrollbar = AutoScrollbar(master=main_panel,
+            command=recipe_body.yview)
+        recipe_body_scrollbar.grid(row=1, column=1, sticky='nse')
+
+        recipe_body.config(yscrollcommand=recipe_body_scrollbar.set)
 
         recipe_tags = tk.Label(master=main_panel, anchor='nw', justify=tk.LEFT)
-        recipe_tags.grid(row=2, column=0, sticky='nsew')
+        recipe_tags.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
         # I want the recipe_body label to refigure its wrapping when the window 
         # is resized.

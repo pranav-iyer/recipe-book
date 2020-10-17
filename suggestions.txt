@@ -16,3 +16,5 @@
 --make side panel resizable
 --weird expanding when resizing
 --update main panel when closing windows
+--import recipes straight from website
+--checkboxes on ingredients
