@@ -1,8 +1,8 @@
 # dictionary of unit conversions for the recipe parser
-cup	c.
-cups	c.
-c	c.
-c.	c.
+cup	c
+cups	c
+c	c
+c.	c
 tbsp	Tbsp
 Tbsp	Tbsp
 T	Tbsp
@@ -67,3 +67,7 @@ handful	handful^
 handfuls	handful^
 stick	stick^
 sticks	stick^
+inch	inch^^
+inches	inch^^
+in	inch^^
+in.	inch^^

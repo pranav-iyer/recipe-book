@@ -2,6 +2,7 @@ from cookbook import Cookbook
 import os
 import tkinter as tk
 from tkinter import scrolledtext
+from tkinter import messagebox
 
 class AutoScrollbar(tk.Scrollbar):
     # TAKEN from effbot.org/zone/tkinter-autoscrollbar.htm
@@ -164,23 +165,23 @@ class GUI:
         main_panel.rowconfigure(2, weight=0)
         main_panel.columnconfigure(0, weight=1)
 
-        title = tk.Label(master=main_panel,
+        self.title_label = tk.Label(master=main_panel,
             font='Helvetica 18 bold')
-        title.grid(row=0, column=0, columnspan=2, sticky='nsew')
+        self.title_label.grid(row=0, column=0, columnspan=2, sticky='nsew')
 
-        recipe_body = tk.Text(master=main_panel, state='disabled',
+        self.recipe_body = tk.Text(master=main_panel, state='disabled',
             font='TkDefaultFont', height=27, width=20, wrap=tk.WORD)
         # recipe_body.config(background='lightblue')
-        recipe_body.grid(row=1, column=0, sticky='nsew')
+        self.recipe_body.grid(row=1, column=0, sticky='nsew')
 
         recipe_body_scrollbar = AutoScrollbar(master=main_panel,
-            command=recipe_body.yview)
+            command=self.recipe_body.yview)
         recipe_body_scrollbar.grid(row=1, column=1, sticky='nse')
 
-        recipe_body.config(yscrollcommand=recipe_body_scrollbar.set)
+        self.recipe_body.config(yscrollcommand=recipe_body_scrollbar.set)
 
-        recipe_tags = tk.Label(master=main_panel, anchor='nw', justify=tk.LEFT)
-        recipe_tags.grid(row=2, column=0, columnspan=2, sticky='nsew')
+        self.recipe_tags = tk.Label(master=main_panel, anchor='nw', justify=tk.LEFT)
+        self.recipe_tags.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
         # I want the recipe_body label to refigure its wrapping when the window 
         # is resized.
@@ -191,39 +192,44 @@ class GUI:
 
         main_panel.bind('<Configure>', update_recipe_body_width)
 
-        #—————————————showing recipe in main on double click————————————————————
-        # bind double click to show recipe in main panel
-        def show_recipe_in_main(event):
+        #—————————————showing recipe in main on click————————————————————
+        # bind click to show recipe in main panel
+        def select_recipe(event):
             idx_to_show = self.recipe_list.nearest(event.y)
             title_to_show = self.recipe_list.get(idx_to_show)
             recipe_to_show = self.ckbk.find_by_title(title_to_show)
 
-            # put title of recipe in  the title label
-            title.config(text=recipe_to_show.title)
+            self._show_recipe_in_main(recipe_to_show)
 
-            # format recipe text in main body
-            recipe_text = ''
-            recipe_text += recipe_to_show.get_ingredients()
-            recipe_text += '----------------------------------------\n'
-            recipe_text += recipe_to_show.instructions
-            recipe_body.config(state='normal')
-            recipe_body.delete('1.0', tk.END)
-            recipe_body.insert('1.0', str(recipe_text))
-            recipe_body.config(state='disabled')
+        self.recipe_list.bind('<Button-1>', select_recipe)
 
-
-            # format recipe tags into the tags section
-            recipe_tag_text = 'Tags: '
-            for tag in recipe_to_show.tags:
-                recipe_tag_text += tag +', '
-            recipe_tag_text = recipe_tag_text[:-2]
-            recipe_tags.config(text=str(recipe_tag_text))
-            
-        self.recipe_list.bind('<Button-1>', show_recipe_in_main)
 
 
         #————————————————————————main loop——————————————————————————————————————
         self.main_window.mainloop()
+
+    def _show_recipe_in_main(self, recipe_to_show):
+
+        self.title_label.config(text=recipe_to_show.title)
+
+        # format recipe text in main body
+        recipe_text = ''
+        recipe_text += recipe_to_show.get_ingredients()
+        recipe_text += '----------------------------------------\n'
+        recipe_text += recipe_to_show.instructions
+        self.recipe_body.config(state='normal')
+        self.recipe_body.delete('1.0', tk.END)
+        self.recipe_body.insert('1.0', str(recipe_text))
+        self.recipe_body.config(state='disabled')
+
+
+        # format recipe tags into the tags section
+        recipe_tag_text = 'Tags: '
+        for tag in recipe_to_show.tags:
+            recipe_tag_text += tag +', '
+        recipe_tag_text = recipe_tag_text[:-2]
+        self.recipe_tags.config(text=str(recipe_tag_text))
+
 
     def _load_all_recipes(self):
         """
@@ -248,7 +254,7 @@ class GUI:
         self.recipe_list.delete(0, tk.END)
         for recipe in recipes_to_show:
             self.recipe_list.insert(tk.END, recipe.title)
-            
+
     def _add_new_recipe_window(self):
         """
         Displays popup window which prompts user for information about recipe
@@ -263,15 +269,37 @@ class GUI:
         title_entry = tk.Entry(master=nrw, borderwidth=0, justify=tk.CENTER,
             highlightthickness=0, font='Helvetica 18 bold')
         ingredients_text = tk.Text(master=nrw, relief=tk.SUNKEN, borderwidth=1,
-            highlightthickness=0)
+            highlightthickness=0, height=20)
         instructions_text = tk.Text(master=nrw, relief=tk.SUNKEN, borderwidth=1,
+            highlightthickness=0, height=20)
+        tags_entry = tk.Entry(master=nrw, borderwidth=0, justify=tk.LEFT,
             highlightthickness=0)
+
+        ingredients_scrollbar = AutoScrollbar(master=nrw, orient=tk.VERTICAL,
+            command=ingredients_text.yview)
+        instructions_scrollbar = AutoScrollbar(master=nrw, orient=tk.VERTICAL,
+            comman=instructions_text.yview)
+
+        ingredients_text.config(yscrollcommand=ingredients_scrollbar.set)
+        instructions_text.config(yscrollcommand=instructions_scrollbar.set)
+
+
 
         def add_recipe_callback():
             title_to_add = title_entry.get()
+
+            # if this title is already in the cookbook, tell the user and tell
+            # them to choose a different title
+            if self.ckbk.find_by_title(title_to_add):
+                messagebox.showwarning(title="Recipe Already Exists",
+                message="A recipe with this title already exists in the \
+cookbook. Please choose a different title and try again.")
+                return
+
             ings_to_add = ingredients_text.get('1.0', tk.END)
             instr_to_add = instructions_text.get('1.0', tk.END)
-            self.ckbk.add(title_to_add, ings_to_add, instr_to_add)
+            tags_to_add = tags_entry.get()
+            self.ckbk.add(title_to_add, ings_to_add, instr_to_add, tags=tags_to_add)
 
             nrw.destroy()
 
@@ -282,10 +310,15 @@ class GUI:
         submit_button = tk.Button(master=nrw, text="Add Recipe",
             command=add_recipe_callback)
 
-        title_entry.grid(row=0, column=0, sticky='nsew')
+        title_entry.grid(row=0, column=0, columnspan=2, sticky='nsew')
         ingredients_text.grid(row=1, column=0, sticky='nsew')
         instructions_text.grid(row=2, column=0, sticky='nsew')
-        submit_button.grid(row=3, column=0, sticky='nsew')
+
+        ingredients_scrollbar.grid(row=1, column=1, sticky='nse')
+        instructions_scrollbar.grid(row=2, column=1, sticky='nse')
+
+        tags_entry.grid(row=3, column=0, sticky='nsew')
+        submit_button.grid(row=4, column=0, columnspan=2, sticky='nsew')
 
         nrw.mainloop()
 
@@ -301,35 +334,64 @@ class GUI:
         title_label = tk.Label(master=ew, borderwidth=0, text=title,
             font='Helvetica 18 bold')
         ingredients_text = tk.Text(master=ew, relief=tk.SUNKEN, borderwidth=1,
-            highlightthickness=0)
+            highlightthickness=0, height=20)
         instructions_text = tk.Text(master=ew, relief=tk.SUNKEN, borderwidth=1,
-            highlightthickness=0)
+            highlightthickness=0, height=20)
+        tags_entry_frame = tk.Frame(master=ew)
+        tags_entry_frame.columnconfigure(1, weight=1)
+        tags_label = tk.Label(master=tags_entry_frame, text='Tags:')
+        tags_entry = tk.Entry(master=tags_entry_frame, borderwidth=0,
+                highlightthickness=0)
+
+        ingredients_scrollbar = AutoScrollbar(master=ew, orient=tk.VERTICAL,
+            command=ingredients_text.yview)
+        instructions_scrollbar = AutoScrollbar(master=ew, orient=tk.VERTICAL,
+            comman=instructions_text.yview)
+
+        ingredients_text.config(yscrollcommand=ingredients_scrollbar.set)
+        instructions_text.config(yscrollcommand=instructions_scrollbar.set)
 
         # fill in the text boxes with the old data
         old_ings = self.ckbk.find_by_title(title).get_ingredients()
         old_instr = self.ckbk.find_by_title(title).instructions
+        old_tags = ', '.join(self.ckbk.find_by_title(title).tags)
 
         ingredients_text.insert(tk.END, old_ings)
         instructions_text.insert(tk.END, old_instr)
+        tags_entry.insert(tk.END, old_tags)
 
         def edit_recipe_callback():
             ings_to_edit = ingredients_text.get('1.0', tk.END)
             instr_to_edit = instructions_text.get('1.0', tk.END)
-            self.ckbk.update(title, ings_to_edit, instr_to_edit)
+            tags_to_edit = tags_entry.get()
+            self.ckbk.update(title, ings_to_edit, instr_to_edit,
+                    tags=tags_to_edit)
 
             ew.destroy()
 
             self._update_recipe_list(0,0,0)
+            self._show_recipe_in_main(self.ckbk.find_by_title(title))
 
 
 
         submit_button = tk.Button(master=ew, text="Save Recipe",
             command=edit_recipe_callback)
 
-        title_label.grid(row=0, column=0, sticky='nsew')
+        # make it so that clicking enter when you are in the last text entry
+        # (the one for the tags) will invoke the submit button
+        tags_entry.bind("<Return>", lambda e: submit_button.invoke())
+
+        title_label.grid(row=0, column=0, columnspan=2, sticky='nsew')
         ingredients_text.grid(row=1, column=0, sticky='nsew')
         instructions_text.grid(row=2, column=0, sticky='nsew')
-        submit_button.grid(row=3, column=0, sticky='nsew')
+
+        ingredients_scrollbar.grid(row=1, column=1, sticky='nse')
+        instructions_scrollbar.grid(row=2, column=1, sticky='nse')
+
+        tags_entry_frame.grid(row=3, column=0, columnspan=2, sticky='nsew')
+        tags_label.grid(row=0, column=0)
+        tags_entry.grid(row=0, column=1, sticky='nsew')
+        submit_button.grid(row=4, column=0, columnspan=2, sticky='nsew')
 
         ew.mainloop()
 
@@ -370,7 +432,7 @@ class GUI:
 
     def _save_and_close(self):
         """
-        Function which is called when the tkinter window is closed. Writes 
+        Function which is called when the tkinter window is closed. Writes
         all of the recipes in the cookbook to files in a directory for use
         later.
         """

@@ -1,6 +1,66 @@
 import os
 import re
 from datetime import datetime
+import csv
+import sys
+from math import isclose, floor
+
+#read in the unit conversion as a dictionary, so that it can be used to parse
+# ingredient lists.
+unit_conversions = {}
+with open('tables/unit_conversions.txt', 'r', newline='') as f:
+    reader = csv.reader(f, delimiter='\t')
+    next(reader)
+    for row in reader:
+        unit_conversions[row[0]] = row[1]
+
+def parse_fraction(fraction_string):
+    """
+    function for parsing fraction strings ("1/2", "1/3") into floats (0.5,
+    0.3333333). Can understand mixed numbers like "1 1/2" or "2-1/4". Will also
+    pass through integers if possible (i.e. input "4" returns int 4). If all
+    parsing fails, will return the input unchanged (i.e. input "4.5" returns
+    "4.5")
+    """
+    # parse integer part
+    if len(fraction_string.split(' ')) > 1:
+        split_fraction = fraction_string.split(' ')
+        whole_number = int(split_fraction[0])
+        remainder = split_fraction[1]
+    elif len(fraction_string.split('-')) > 1:
+        split_fraction = fraction_string.split('-')
+        whole_number = int(split_fraction[0])
+        remainder = split_fraction[1]
+    else:
+        whole_number = 0
+        remainder = fraction_string
+
+    if len(remainder.split('/')) == 2:
+        num, denom = [int(x) for x in remainder.split('/')]
+        return whole_number + num / denom
+    else:
+        try:
+            return int(fraction_string)
+        except:
+            return fraction_string
+
+def unparse_fraction(fraction_float, tol=1e-4):
+    '''
+    function for turning decimals of fractions into nicely printable fractions
+    like 1/3 and 3/4. Handles mixed numbers (i.e. 1.5 -> "1 1/2"). Anything it
+    cannot parse will be simply passed through as the string version (i.e.
+    2.9185 -> "2.9185").
+    '''
+    if fraction_float >= 1:
+        whole_num = floor(fraction_float)
+        remainder = fraction_float - whole_num
+
+    possible_denoms = [2, 3, 4, 8]
+    for d in possible_denoms:
+        for n in range(1, d):
+            if  isclose(d*remainder, n, rel_tol=tol):
+                return f"{whole_num} {n}/{d}"
+    return str(fraction_float)
 
 class Recipe:
     '''Holds information associated with one recipe.
@@ -43,7 +103,7 @@ class Recipe:
         Also creates any needed directories that may not exist.
 
         Args:
-            directory (str or None): if None, the directory will be autofilled 
+            directory (str or None): if None, the directory will be autofilled
                 to "Recipes". Otherwise, it is saved in the format of
                 <directory>/<title>.txt
         '''
@@ -155,19 +215,51 @@ class Recipe:
                 else:
                     done_notes = True
 
+        os.chdir(old_cwd)
 
         return cls(title, ingredients, instructions, tags=tags, notes=notes)
 
 
+    @staticmethod
+    def parse_line_to_ingredient(line):
+        """
+        Takes in one line of text, assumed to represent one ingredient. Parses
+        it into a 3-tuple to be stored in a recipe object. First element number,
+        second contains unit ['' if no unit], third element ingredient name.
 
-        os.chdir(old_cwd)
+        Args:
+            line (str): line of text to parse
+
+        Returns:
+            ingredient (tuple): parsed tuple
+        """
+        split = re.split(r'\s', line)
+
+        # parse first element to number
+        number = float(split.pop(0))
+
+        #parse second to unit
+        unit = split.pop(0)
+        name = ''
+        if unit in unit_conversions.keys():
+            unit = unit_conversions[unit]
+        else:
+            name = unit
+            unit = ''
+
+        # parse rest to name of ingredient
+        if name and split: name += ' '
+
+        name += ' '.join(split)
+
+        return (number, unit, name)
+
 
     @staticmethod
     def parse_ingredients(ingredients_raw):
         """
         Takes in a string containing the ingredients list of a recipe, and
         parses it into the list-of-tuples format usable by the class constructor
-        Do not use mixed numbers like "1 1/2", instead use 1.5
 
         Args:
             ingredients_raw (str): list of ingredients, of the form:
@@ -183,7 +275,18 @@ class Recipe:
         for ing_string in separated_ingredients:
             split = re.split(r'\s', ing_string)
 
-            # parse fractions in first element
+            # parse fractions in first and second elements
+            number = 0
+            # first, check if it is a mixed number in the form of "1 3/4"
+            if type(Recipe.parse_fraction(' '.join(split[:2]))) != str:
+                number = Recipe.parse_fraction(' '.join(split[:2]))
+                del split[:2]
+            elif type(Recipe.parse_fraction(split[0])) != str:
+                number = Recipe.parse_fraction(split([0]))
+            else:
+                # could not be parsed
+                ingredients.append(0, '', ' '.join(split))
+                continue
 
             ingredients.append((float(split[0]), split[1], ' '.join(split[2:])))
         return ingredients
@@ -205,24 +308,92 @@ class Recipe:
 
         ingredients_string = ''
         for ing in ingredients:
+            ing = list(ing)
+            ing = list(ing)
+            ing[0] = Recipe.unparse_fraction(float(ing[0]))
             ingredients_string += ' '.join([str(i) for i in ing]) + '\n'
         return ingredients_string
 
+    @staticmethod
+    def parse_fraction(fraction_string):
+        """
+        function for parsing fraction strings ("1/2", "1/3") into floats (0.5,
+        0.3333333). Can understand mixed numbers like "1 1/2" or "2-1/4". Will also
+        pass through any floats if possible (i.e. input "4.134" returns float
+        4.134). If all parsing fails, will return the input unchanged (i.e. input
+        "4.5" returns "4.5")
+        """
+        # parse integer part
+        if len(fraction_string.split(' ')) > 1:
+            split_fraction = fraction_string.split(' ')
+            whole_number = int(split_fraction[0])
+            remainder = split_fraction[1]
+        elif len(fraction_string.split('-')) > 1:
+            split_fraction = fraction_string.split('-')
+            whole_number = int(split_fraction[0])
+            remainder = split_fraction[1]
+        else:
+            whole_number = 0
+            remainder = fraction_string
+
+        if len(remainder.split('/')) == 2:
+            num, denom = [int(x) for x in remainder.split('/')]
+            return whole_number + num / denom
+        else:
+            try:
+                return float(fraction_string)
+            except:
+                return fraction_string
+
+    @staticmethod
+    def unparse_fraction(fraction_float, tol=1e-4):
+        '''
+        function for turning decimals of fractions into nicely printable fractions
+        like 1/3 and 3/4. Handles mixed numbers (i.e. 1.5 -> "1 1/2"). Anything it
+        cannot parse will be simply passed through as the string version (i.e.
+        2.9185 -> "2.9185").
+        '''
+        # check if the number is close to an integer, then we can print it as
+        # an int
+        for n in range(1, 25):
+            if isclose(fraction_float, n, rel_tol=tol):
+                return str(n)
+
+        # check if the fraction is greater than 1 (then it will be a mixed
+        # number) and then strip off the integer part
+        if fraction_float >= 1:
+            whole_num = floor(fraction_float)
+            remainder = fraction_float - whole_num
+        else:
+            whole_num = 0
+            remainder = fraction_float
+
+        possible_denoms = [2, 3, 4, 8]
+        for d in possible_denoms:
+            for n in range(1, d):
+                if  isclose(d*remainder, n, rel_tol=tol):
+                    if whole_num:
+                        return f"{whole_num} {n}/{d}"
+                    else:
+                        return f"{n}/{d}"
+        return str(fraction_float)
 
 if __name__=='__main__':
     # r = Recipe("Salt Potatoes", '1 c potatoes \n 4 tbsp butter', "Mix potatoes and butter.\nCook until done.")
     # r.save_to_file()
-    r = Recipe.read_from_file('Test_Recipe.txt')
+    # r = Recipe.read_from_file('Test_Recipe.txt')
     # print(r)
-    print(r.title)
-    print(r.ingredients)
-    print(r.instructions)
-    print(r.tags)
-    print(r.notes)
+    # print(r.title)
+    # print(r.ingredients)
+    # print(r.instructions)
+    # print(r.tags)
+    # print(r.notes)
 
-    r.tags.append('breakfast??')
-    r.save_to_file()
+    # r.tags.append('breakfast??')
+    # r.save_to_file()
 
     # raw_ing = Recipe.unparse_ingredients([(1, 'c', 'flour'), (0.5, 'c', 'sugar')])
     # parsed = Recipe.parse_ingredients(raw_ing)
     # print(parsed)
+
+    print(Recipe.parse_fraction("1 large"))

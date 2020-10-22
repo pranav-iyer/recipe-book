@@ -59,16 +59,16 @@ class Cookbook:
         rec_to_delete = self.find_by_title(title)
         self.recipes.remove(rec_to_delete)
 
-    def add(self, title, ingredients, instructions):
+    def add(self, title, ingredients, instructions, tags=None):
         '''
         Adds a recipe into the list of recipes. Takes same arguments as Recipe 
         constructor.
 
         Args: see Recipe class in file recipe.py
         '''
-        self.recipes.append(Recipe(title, ingredients, instructions))
+        self.recipes.append(Recipe(title, ingredients, instructions, tags=tags))
 
-    def update(self, title, ingredients, instructions):
+    def update(self, title, ingredients, instructions, tags=None):
         '''
         Finds a recipe by its title, and modifies the ingredients and 
         instructions.
@@ -80,6 +80,8 @@ class Cookbook:
         rec = self.find_by_title(title)
         rec.ingredients = Recipe.parse_ingredients(ingredients)
         rec.instructions = instructions
+        if tags:
+            rec.tags = tags.split(', ')
 
     @classmethod
     def read_from_dir(cls, directory):
