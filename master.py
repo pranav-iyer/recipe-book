@@ -138,6 +138,13 @@ class GUI:
         rc_options.add_command(label='Delete')
 
         def popup_rc_options(event):
+            # show the clicked on recipe in the main panel
+            idx_to_show = self.recipe_list.nearest(event.y)
+            title_to_show = self.recipe_list.get(idx_to_show)
+            recipe_to_show = self.ckbk.find_by_title(title_to_show)
+
+            self._show_recipe_in_main(recipe_to_show)
+
             item_clicked = self.recipe_list.nearest(event.y)
             self.recipe_list.selection_clear(0, tk.END)
             self.recipe_list.selection_set(item_clicked)
@@ -203,7 +210,7 @@ class GUI:
 
         self.recipe_list.bind('<Button-1>', select_recipe)
 
-
+        self._show_recipe_in_main(self.ckbk.recipes[0])
 
         #————————————————————————main loop——————————————————————————————————————
         self.main_window.mainloop()
@@ -227,7 +234,8 @@ class GUI:
         recipe_tag_text = 'Tags: '
         for tag in recipe_to_show.tags:
             recipe_tag_text += tag +', '
-        recipe_tag_text = recipe_tag_text[:-2]
+        if recipe_tag_text != "Tags: ":
+            recipe_tag_text = recipe_tag_text[:-2]
         self.recipe_tags.config(text=str(recipe_tag_text))
 
 
@@ -288,6 +296,11 @@ class GUI:
         def add_recipe_callback():
             title_to_add = title_entry.get()
 
+            # if title is empty, tell the user to enter a title
+            if not title_to_add.strip():
+                messagebox.showwarning(title="Enter a Title", message="No \
+title entered. Please enter a title for the recipe and try again.")
+                return
             # if this title is already in the cookbook, tell the user and tell
             # them to choose a different title
             if self.ckbk.find_by_title(title_to_add):
@@ -299,6 +312,7 @@ cookbook. Please choose a different title and try again.")
             ings_to_add = ingredients_text.get('1.0', tk.END)
             instr_to_add = instructions_text.get('1.0', tk.END)
             tags_to_add = tags_entry.get()
+            tags_to_add = tags_to_add.split(', ')
             self.ckbk.add(title_to_add, ings_to_add, instr_to_add, tags=tags_to_add)
 
             nrw.destroy()
@@ -309,6 +323,8 @@ cookbook. Please choose a different title and try again.")
 
         submit_button = tk.Button(master=nrw, text="Add Recipe",
             command=add_recipe_callback)
+
+        tags_entry.bind("<Return>", lambda e: submit_button.invoke())
 
         title_entry.grid(row=0, column=0, columnspan=2, sticky='nsew')
         ingredients_text.grid(row=1, column=0, sticky='nsew')
@@ -346,7 +362,7 @@ cookbook. Please choose a different title and try again.")
         ingredients_scrollbar = AutoScrollbar(master=ew, orient=tk.VERTICAL,
             command=ingredients_text.yview)
         instructions_scrollbar = AutoScrollbar(master=ew, orient=tk.VERTICAL,
-            comman=instructions_text.yview)
+            command=instructions_text.yview)
 
         ingredients_text.config(yscrollcommand=ingredients_scrollbar.set)
         instructions_text.config(yscrollcommand=instructions_scrollbar.set)
