@@ -57,7 +57,7 @@ class GUI:
         """
         #————————————————————setup window frame—————————————————————————————————
         self.main_window = tk.Tk()
-        self.main_window.title("Recipe Master")
+        self.main_window.title("Recipe Book")
         self.main_window.minsize(700,500)
         self.main_window.protocol("WM_DELETE_WINDOW", self._save_and_close)
         self.main_window.rowconfigure(0, weight=1, minsize=500)

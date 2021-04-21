@@ -240,7 +240,7 @@ class Recipe:
                 number = Recipe.parse_fraction(split[0])
                 del split[0]
             else:
-                # could not parse the number—don't even try to parse the units,
+                # could not parse the number-don't even try to parse the units,
                 # just put everything into the item slot
                 ingredients.append((0, '', ' '.join(split)))
                 continue
