@@ -6,3 +6,5 @@ To run the GUI, just run the following from the command line:
 ```
 python master.py
 ```
+
+It should work with just python, no dependencies other than the builtin libraries.
