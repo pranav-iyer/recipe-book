@@ -1,7 +1,8 @@
 # Recipe Master
 A simple program for storing recipes with search and tagging capabilites. Written in Python 3.7 with Tkinter.
 
-https://user-images.githubusercontent.com/25040701/115584736-04410c80-a299-11eb-88ca-4b015d09437d.mp4
+
+https://user-images.githubusercontent.com/25040701/115586058-3010c200-a29a-11eb-84f7-b6947ef3d7f6.mp4
 
 ## Usage
 To run the GUI, just run the following from the command line:
