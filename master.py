@@ -3,6 +3,8 @@ import os
 import tkinter as tk
 from tkinter import scrolledtext
 from tkinter import messagebox
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class AutoScrollbar(tk.Scrollbar):
     # TAKEN from effbot.org/zone/tkinter-autoscrollbar.htm
@@ -65,7 +67,7 @@ class GUI:
 
         #—————————————————————recipe list sidebar———————————————————————————————
         sidebar = tk.Frame(master=self.main_window)
-        sidebar.config(background='lightgray')
+        sidebar.config(background='white')
         sidebar.grid(row=0, column=0, sticky='nsew')
 
         sidebar.rowconfigure(0, minsize=30)
@@ -79,7 +81,8 @@ class GUI:
         # changed the list will update
         self.search_text = tk.StringVar()
 
-        searchbar = tk.Entry(master=sidebar, textvariable=self.search_text)
+        searchbar = tk.Entry(master=sidebar, textvariable=self.search_text,
+                highlightthickness=0, borderwidth=4, relief=tk.FLAT)
 
         def focus_off_searchbar(event):
             if self.search_text.get() == '':
@@ -104,12 +107,13 @@ class GUI:
         #-----------------------------recipe list-------------------------------
 
         # recipe listbox ...
-        self.recipe_list = tk.Listbox(master=sidebar, borderwidth=0,
-            selectmode=tk.SINGLE)
+        self.recipe_list = tk.Listbox(master=sidebar, borderwidth=4,
+            selectmode=tk.SINGLE, relief=tk.FLAT)
         self.recipe_list.grid(row=1, column=0, columnspan=2, sticky='nsew')
 
         recipe_list_scrollbar_x = AutoScrollbar(master=sidebar,
-            orient='horizontal', command=self.recipe_list.xview)
+            orient='horizontal', command=self.recipe_list.xview,
+            highlightthickness=0, borderwidth=0)
         recipe_list_scrollbar_x.grid(row=2, column=0, sticky='sew')
 
         recipe_list_scrollbar_y = AutoScrollbar(master=sidebar,
@@ -127,7 +131,8 @@ class GUI:
 
         # add button at bottom of recipe list.
         add_button = tk.Button(master=sidebar, text='Add New Recipe',
-            command=self._add_new_recipe_window)
+            command=self._add_new_recipe_window, borderwidth=0,
+            highlightthickness=0)
         add_button.grid(row=3, column=0, columnspan=2, sticky='nsew')
 
         rc_options = tk.Menu(master=sidebar, tearoff=0)
@@ -150,7 +155,7 @@ class GUI:
             self.recipe_list.selection_set(item_clicked)
             self.recipe_list.update()
             title_clicked = self.recipe_list.get(item_clicked)
-            print(f"Right Click on recipe {title_clicked}!")
+            logging.info(f"Right Click on recipe {title_clicked}!")
 
             # update what the edit and delete buttons do 
             rc_options.entryconfig('Edit',
@@ -165,7 +170,7 @@ class GUI:
         #—————————————————————recipe view (main panel)——————————————————————————
 
         main_panel = tk.Frame(master=self.main_window, borderwidth=1)
-        main_panel.config(background='lightgray')
+        main_panel.config(background='white')
         main_panel.grid(row=0, column=1, sticky='nsew')
         main_panel.rowconfigure(0, weight=0, minsize=30)
         main_panel.rowconfigure(1, weight=1)
@@ -173,12 +178,13 @@ class GUI:
         main_panel.columnconfigure(0, weight=1)
 
         self.title_label = tk.Label(master=main_panel,
-            font='Helvetica 18 bold')
+                font='Helvetica 18 bold', bg='white')
         self.title_label.grid(row=0, column=0, columnspan=2, sticky='nsew')
 
         self.recipe_body = tk.Text(master=main_panel, state='disabled',
-            font='TkDefaultFont', height=27, width=20, wrap=tk.WORD)
-        # recipe_body.config(background='lightblue')
+            font='TkDefaultFont', height=27, width=20, wrap=tk.WORD,
+            borderwidth=0, highlightthickness=0)
+        self.recipe_body.config(background='white')
         self.recipe_body.grid(row=1, column=0, sticky='nsew')
 
         recipe_body_scrollbar = AutoScrollbar(master=main_panel,
@@ -187,7 +193,8 @@ class GUI:
 
         self.recipe_body.config(yscrollcommand=recipe_body_scrollbar.set)
 
-        self.recipe_tags = tk.Label(master=main_panel, anchor='nw', justify=tk.LEFT)
+        self.recipe_tags = tk.Label(master=main_panel, anchor='nw',
+                justify=tk.LEFT, bg='white')
         self.recipe_tags.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
         # I want the recipe_body label to refigure its wrapping when the window 
@@ -211,6 +218,7 @@ class GUI:
         self.recipe_list.bind('<Button-1>', select_recipe)
 
         self._show_recipe_in_main(self.ckbk.recipes[0])
+        self.recipe_list.select_set(0)
 
         #————————————————————————main loop——————————————————————————————————————
         self.main_window.mainloop()

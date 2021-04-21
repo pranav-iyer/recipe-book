@@ -4,6 +4,8 @@ from datetime import datetime
 import csv
 import sys
 from math import isclose, floor
+import logging
+logging.basicConfig(level=logging.INFO)
 
 #read in the unit conversion as a dictionary, so that it can be used to parse
 # ingredient lists.
@@ -23,7 +25,6 @@ class Recipe:
             in the parse_ingredients method
         instructions (str): string containing all instructions for how to
             cook recipe
-        oven_temp (int): if applicable, oven temperature for this recipe
     '''
 
     def __init__(self, title, ingredients, instructions, tags=None, notes=None):
@@ -125,7 +126,7 @@ class Recipe:
         tags = []
         notes = []
 
-        print(filename)
+        logging.info(f"Reading recipe in {filename}")
         with open(filename, 'r') as f:
             title = f.readline()[:-1]
             f.readline()[:-1]
@@ -268,6 +269,7 @@ class Recipe:
                 1 cup potatoes\n2 cups green beans\n1 tbsp butter
         """
 
+
         ingredients_string = ''
         for ing in ingredients:
             ing = list(ing)
@@ -281,8 +283,18 @@ class Recipe:
                 ing[1] = ing[1].replace('^', '')
 
 
+            # if the number is 0, then this means we couldn't parse the number/unit
+            # when it was inputted. this means that the whole text of the
+            # ingredient is in the third element; just return this
+            if ing[0] == 0:
+                ingredients_string += ing[2] + '\n'
+                continue
+
             ing[0] = Recipe.unparse_fraction(float(ing[0]))
-            ingredients_string += ' '.join(ing) + '\n'
+            if ing[1]:
+                ingredients_string += ' '.join(ing) + '\n'
+            else:
+                ingredients_string += str(ing[0]) + ' ' + ing[2] + '\n'
         return ingredients_string
 
     @staticmethod
@@ -322,18 +334,19 @@ class Recipe:
                 return fraction_string
 
     @staticmethod
-    def unparse_fraction(fraction_float, tol=1e-4):
+    def unparse_fraction(fraction_float, tol=1e-3):
         '''
         function for turning decimals of fractions into nicely printable fractions
         like 1/3 and 3/4. Handles mixed numbers (i.e. 1.5 -> "1 1/2"). Anything it
         cannot parse will be simply passed through as the string version (i.e.
         2.9185 -> "2.9185").
         '''
+
         # check if the number is close to an integer, then we can print it as
         # an int
-        for n in range(1, 25):
+        for n in range(1, 200):
             if isclose(fraction_float, n, rel_tol=tol):
-                return str(n)
+                return str(int(n))
 
         # check if the fraction is greater than 1 (then it will be a mixed
         # number) and then strip off the integer part
@@ -369,7 +382,7 @@ if __name__=='__main__':
     # r.save_to_file()
 
     # raw_ing = Recipe.unparse_ingredients([(1, 'c', 'flour'), (0.5, 'c', 'sugar')])
-    # parsed = Recipe.parse_ingredients(raw_ing)
-    # print(parsed)
+    parsed = Recipe.parse_ingredients("1 egg\nA whole piece of ginger\n25 c flour")
+    print(Recipe.unparse_ingredients(parsed))
 
     print(unit_conversions.keys())

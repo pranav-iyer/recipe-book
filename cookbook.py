@@ -57,7 +57,10 @@ class Cookbook:
 
     def delete_recipe(self, title):
         rec_to_delete = self.find_by_title(title)
+        file_to_delete = rec_to_delete.get_filename()
         self.recipes.remove(rec_to_delete)
+        # remove text file containing this recipe
+        os.remove(file_to_delete)
 
     def add(self, title, ingredients, instructions, tags=None):
         '''
