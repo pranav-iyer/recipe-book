@@ -3,7 +3,7 @@ import os
 
 class Cookbook:
     '''
-    holds a cookbook full of recipes!
+    Holds a cookbook full of recipes!
 
     Attributes:
         recipes (list): list of Recipe objects holding all of the recipes in
